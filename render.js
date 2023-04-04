@@ -1,7 +1,7 @@
 var renderResolution = { "x": 250, "y": 250 };
 var aspectRatio = renderResolution.x / renderResolution.y;
 var projectResolution = { "x": 1000, "y": 1000 };
-var bounces = 4;
+var bounces = 1;
 var image;
 
 var canv = document.getElementById('canvas');
@@ -9,7 +9,6 @@ canv.width = projectResolution.x;
 canv.height = projectResolution.y;
 var ctx = canv.getContext("2d");
 var clrs = [];
-var dists = [];
 
 function render(_cam) {
     setTimeout(() => {
@@ -29,38 +28,41 @@ function render(_cam) {
             let rayClr = Color(255, 255, 255);
             let lightClr = Color(0, 0, 0, true);
             let illuminated = false;
-            let obj;
+            let lastObj;
             for (let i = 0; i < bounces + 1; i++) {
                 obj = r.shootRay();
                 if (obj) {
                     if (obj.type != "Light") {
                         // clr = ColorAdd(clr, ColorScalarMult(dls(r.hitPoint, obj), Math.pow(InverseSquareLaw(dists[x][y]), 1/4)));
                         rayClr = ColorMult(rayClr, obj.clr);
-                        // dists[x][y] += Dist(r.trans.pos, r.hitPoint);
                         r.trans.pos = r.hitPoint;
                         r.trans.dir = VectorBounce(r.trans.dir, obj.normal(r.hitPoint));
+                        lastObj = obj;
                     }
-                    else if (i < 1) {
-                        // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)), bounces + 1));
-                        lightClr = ColorAdd(lightClr, ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)));
-                        illuminated = true;
+                    else {
+                        if (i < 1) {
+                            // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)), bounces + 1));
+                            lightClr = ColorAdd(lightClr, ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)));
+                            illuminated = true;
+                        }
                         break;
                     }
                 }
-                else if (i < 1) {
-                    // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(world.clr, world.integ), bounces + 1));
-                    lightClr = ColorAdd(lightClr, ColorScalarMult(world.clr, world.integ));
-                    illuminated = true;
+                else {
+                    if (i < 1) {
+                        // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(world.clr, world.integ), bounces + 1));
+                        lightClr = ColorAdd(lightClr, ColorScalarMult(world.clr, world.integ));
+                        illuminated = true;
+                    }
                     break;
                 }
             }
-            if (!illuminated) {
-                lightClr = ColorAdd(lightClr, dls(r.hitPoint, obj));
+            if (obj && !illuminated) {
+                lightClr = ColorAdd(lightClr, dls(r.hitPoint, lastObj));
             }
             clr = ColorScalarMult(ColorMult(lightClr, rayClr), 4);
             clrs[x][y] = ColorAdd(clrs[x][y], clr);
             pixels[x][y] = scaleLight(ColorScalarDiv(clrs[x][y], frame));
-            // dists[x][y] = 0;
         }
     }
     console.log(scaleLight(ColorScalarDiv(clrs[125][125], frame)));
@@ -162,7 +164,7 @@ class ray {
                 }
             }
         }
-        else{
+        else {
             let offsetPos = VectorSub(this.trans.pos, _l.trans.pos);
             let b = VectorDotProduct(offsetPos, this.trans.dir);
             let c = VectorDotProduct(offsetPos, offsetPos) - Math.pow(_l.trans.rad, 2);

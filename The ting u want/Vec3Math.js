@@ -75,8 +75,16 @@ function DirTo(_vec3a, _vec3b) {
 }
 
 function VectorBounce(_vec3, _normal) {
-    let rndVec = normalize(Vector3((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5)));
-    if (VectorDotProduct(rndVec, _normal) < 0){
+    let rndVec;
+    while (true) {
+        rndVec = Vector3((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5));
+
+        if (magnitude(rndVec) <= 1) {
+            rndVec = normalize(rndVec);
+            break;
+        }
+    }
+    if (VectorDotProduct(rndVec, _normal) < 0) {
         rndVec = VectorScalarMult(rndVec, -1);
     }
     return rndVec;
@@ -96,7 +104,7 @@ function DirToAng(Z1, Y1, X1) {
         Y1 = normalize(Y1);
         X1 = normalize(Z1);
     }
-    else{
+    else {
         Y1 = Vectorup(Z1);
         X1 = VectorRight(Z1);
     }
@@ -110,4 +118,12 @@ function DirToAng(Z1, Y1, X1) {
 
 function InverseSquareLaw(_dist) {
     return 1 / (1 + Math.pow(_dist, 2))
+}
+
+function lerp(a, b, f) {
+    return (a * (1 - f)) + (b * f)
+}
+
+function clamp(_value, _min, _max){
+    return Math.min(Math.max(_value, _min), _max);
 }

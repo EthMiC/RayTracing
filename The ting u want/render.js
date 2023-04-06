@@ -1,8 +1,7 @@
 var renderResolution = { "x": 250, "y": 250 };
 var aspectRatio = renderResolution.x / renderResolution.y;
 var projectResolution = { "x": 1000, "y": 1000 };
-var bounces = 1;
-var image;
+var bounces = 2;
 
 var canv = document.getElementById('canvas');
 canv.width = projectResolution.x;
@@ -40,25 +39,16 @@ function render(_cam) {
                         lastObj = obj;
                     }
                     else {
-                        if (i < 1) {
-                            // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)), bounces + 1));
-                            lightClr = ColorAdd(lightClr, ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)));
-                            illuminated = true;
-                        }
+                        // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)), bounces + 1));
+                        lightClr = ColorAdd(lightClr, ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)));
                         break;
                     }
                 }
                 else {
-                    if (i < 1) {
-                        // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(world.clr, world.integ), bounces + 1));
-                        lightClr = ColorAdd(lightClr, ColorScalarMult(world.clr, world.integ));
-                        illuminated = true;
-                    }
+                    // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(world.clr, world.integ), bounces + 1));
+                    lightClr = ColorAdd(lightClr, world.getColor(r.trans.dir));
                     break;
                 }
-            }
-            if (obj && !illuminated) {
-                lightClr = ColorAdd(lightClr, dls(r.hitPoint, lastObj));
             }
             clr = ColorScalarMult(ColorMult(lightClr, rayClr), 4);
             clrs[x][y] = ColorAdd(clrs[x][y], clr);
@@ -187,4 +177,10 @@ class ray {
         this.hitPoint = VectorAdd(this.trans.pos, VectorScalarMult(this.trans.dir, minDist));
         return minDistType ? minDistType == "Object" ? objects[minDistInt] : lights[minDistInt] : _l;
     }
+}
+
+function saveImage(){
+    var image = new Image();
+    image.src = canvas.toDataURL();
+    console.log(frame);
 }

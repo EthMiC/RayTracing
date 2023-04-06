@@ -52,10 +52,25 @@ class light {
 }
 
 class World {
-    constructor(_integ, _clr) {
-        this.integ = _integ;
-        this.clr = _clr;
+    constructor(_skyPwr, _sunPwr, _zenithClr, _horizonClr, _sunClr, _sunElavation, _sunAngle) {
+        this.skyPwr = _skyPwr;
+        this.zenithClr = _zenithClr;
+        this.horizonClr = _horizonClr;
+        this.sunClr = _sunClr;
+        this.sunElavation = _sunElavation;
+        this.sunAngle = _sunAngle;
+        this.sunPwr = _sunPwr;
     }
+    getSunDir(){
+        return normalize(Vector3(Math.sin(this.sunAngle), Math.sin(this.sunElavation), Math.cos(this.sunAngle)));
+    }
+    getColor(_dir){
+        let skyClr = ColorLerp(this.horizonClr, this.zenithClr, clamp(VectorDotProduct(Vector3(0, 1, 0), _dir) * 4, 0, 1));
+        let sunDiv = 2.5
+        let sunAmount = ColorLerp(Color(0, 0, 0), this.sunClr, Math.pow(clamp(VectorDotProduct(this.getSunDir(), _dir), 0, 1), sunDiv) / Math.pow(5, sunDiv - 1));
+        return ColorAdd(ColorScalarMult(skyClr, this.skyPwr), ColorScalarMult(sunAmount, this.sunPwr));
+    }
+    
 }
 
 function addObject(_type, _pos, _i1, _i2, _i3) {

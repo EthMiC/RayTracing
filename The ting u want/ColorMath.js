@@ -38,6 +38,15 @@ function ColorScalarDiv(_clr, scalar){
     return Color((_clr[0] / scalar), (_clr[1] / scalar), (_clr[2] / scalar));
 }
 
+function ColorLerp(_clr1, _clr2, value){
+    _clr1 = ColorScalarDiv(_clr1, 255);
+    _clr2 = ColorScalarDiv(_clr2, 255);
+    let clr1RGB = GetRGBValues(_clr1);
+    let clr2RGB = GetRGBValues(_clr2);
+    let clr = Color(lerp(clr1RGB[0], clr2RGB[0], value), lerp(clr1RGB[1], clr2RGB[1], value), lerp(clr1RGB[2], clr2RGB[2], value));
+    return ColorScalarMult(clr, 255);
+}
+
 function parseColorFloats(_clr){
     for (var i = 0; i < _clr.length; i++){
         _clr[i] = parseFloat(_clr[i]);

@@ -65,7 +65,8 @@ class World {
         return normalize(Vector3(Math.sin(this.sunAngle), Math.sin(this.sunElavation), Math.cos(this.sunAngle)));
     }
     getColor(_dir){
-        let skyClr = ColorLerp(this.horizonClr, this.zenithClr, clamp(VectorDotProduct(Vector3(0, 1, 0), _dir) * 4, 0, 1));
+        let skyDiv = 0.75
+        let skyClr = ColorLerp(this.horizonClr, this.zenithClr, Math.pow(clamp(VectorDotProduct(Vector3(0, 1, 0), _dir) * 4, 0, 1), skyDiv) / Math.pow(5, skyDiv - 1));
         let sunDiv = 2.5
         let sunAmount = ColorLerp(Color(0, 0, 0), this.sunClr, Math.pow(clamp(VectorDotProduct(this.getSunDir(), _dir), 0, 1), sunDiv) / Math.pow(5, sunDiv - 1));
         return ColorAdd(ColorScalarMult(skyClr, this.skyPwr), ColorScalarMult(sunAmount, this.sunPwr));

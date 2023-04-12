@@ -9,32 +9,58 @@
 </head>
 
 <body>
-    <canvas width="400" height="400" id="glcanvas"></canvas>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
-        integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
-        crossorigin="anonymous" defer></script>
+    <canvas width="500" height="400" id="glcanvas"></canvas>
     <script src="Vec3Math.js"></script>
     <script>
-        main();
+        var canv = document.getElementById("glcanvas");
+        var ctx = canv.getContext("2d");
 
-        function main() {
-            const canv = document.querySelector("#glcanvas");
-            // Initialize the GL context
-            const gl = canv.getContext("webgl");
+        setInterval(check, 10);
 
-            // Only continue if WebGL is available and working
-            if (gl === null) {
-                alert(
-                    "Unable to initialize WebGL. Your browser or machine may not support it."
-                );
-                return;
+        function check(){
+            let defRND = Math.random();
+            let myRND = randomValue(Math.trunc(defRND * 100) + 1367338163);
+
+            defRND = Math.trunc(defRND * 5);
+            myRND = Math.trunc(myRND * 5);
+
+            ctx.fillStyle = "rgba(10, 100, 200, 0.01)"
+
+            switch(defRND){
+                case 0:
+                    ctx.fillRect(0, 0, 100, 200);
+                    break;
+                case 1:
+                    ctx.fillRect(100, 0, 100, 200);
+                    break;
+                case 2:
+                    ctx.fillRect(200, 0, 100, 200);
+                    break;
+                case 3:
+                    ctx.fillRect(300, 0, 100, 200);
+                    break;
+                case 4:
+                    ctx.fillRect(400, 0, 100, 200);
+                    break;
             }
-
-            // Set clear color to black, fully opaque
-            gl.clearColor(0.0, 0.0, 0.0, 1.0);
-            // Clear the color buffer with specified clear color
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.FragColor = [0.0, 1.0, 1.0, 1.0];
+            
+            switch(myRND){
+                case 0:
+                    ctx.fillRect(0, 200, 100, 200);
+                    break;
+                case 1:
+                    ctx.fillRect(100, 200, 100, 200);
+                    break;
+                case 2:
+                    ctx.fillRect(200, 200, 100, 200);
+                    break;
+                case 3:
+                    ctx.fillRect(300, 200, 100, 200);
+                    break;
+                case 4:
+                    ctx.fillRect(400, 200, 100, 200);
+                    break;
+            }
         }
     </script>
 </body>

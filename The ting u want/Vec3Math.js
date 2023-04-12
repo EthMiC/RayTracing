@@ -23,6 +23,10 @@ function VectorMult(_vec3a, _vec3b) {
     return Vector3(_vec3a.x * _vec3b.x, _vec3a.y * _vec3b.y, _vec3a.z * _vec3b.z);
 }
 
+function VectorDiv(_vec3a, _vec3b) {
+    return Vector3(_vec3a.x / _vec3b.x, _vec3a.y / _vec3b.y, _vec3a.z / _vec3b.z);
+}
+
 function VectorDotProduct(_vec3a, _vec3b) {
     _vec3 = VectorMult(_vec3a, _vec3b);
     return _vec3.x + _vec3.y + _vec3.z;
@@ -45,13 +49,18 @@ function VectorScalarDiv(_vec3, scalar) {
     return Vector3(_vec3.x / scalar, _vec3.y / scalar, _vec3.z / scalar);
 }
 
-function VectorFindAngleBetween(_vec3a, _vec3b, normal) {
+function VectorFindAngleBetween(_vec3a, _vec3b, _normal) {
     _vec3aMag = magnitude(_vec3a, true);
     _vec3bMag = magnitude(_vec3b, true);
     dot = VectorDotProduct(_vec3a, _vec3b);
-    det = ((_vec3a.x * _vec3b.y * normal.z) + (_vec3b.x * normal.y * _vec3a.z) + (normal.x * _vec3a.y * _vec3b.z)) - ((normal.x * _vec3b.y * _vec3a.z) + (_vec3a.x * normal.y * _vec3b.z) + (_vec3b.x * _vec3a.y * normal.z));
+    det = ((_vec3a.x * _vec3b.y * _normal.z) + (_vec3b.x * _normal.y * _vec3a.z) + (_normal.x * _vec3a.y * _vec3b.z)) - ((_normal.x * _vec3b.y * _vec3a.z) + (_vec3a.x * _normal.y * _vec3b.z) + (_vec3b.x * _vec3a.y * _normal.z));
     ang = Math.atan2(det, dot);
     return ang;
+}
+
+function VectorLerp(_vec3a, _vec3b, _value) {
+    let vec3 = Vector3(lerp(_vec3a.x, _vec3b.x, _value), lerp(_vec3a.y, _vec3b.y, _value), lerp(_vec3a.z, _vec3b.z, _value));
+    return vec3;
 }
 
 function Dist(_vec3a, _vec3b) {
@@ -74,11 +83,16 @@ function DirTo(_vec3a, _vec3b) {
     return normalize(sub);
 }
 
-function VectorBounce(_vec3, _normal) {
+function VectorBounce(_vec3, _normal, _roughness, _rndSeed) {
     let rndVec;
-    while (true) {
-        rndVec = Vector3((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5));
-
+    let rndX;
+    let rndY;
+    let rndZ;
+    for (let safetyLimit = 0; safetyLimit < 100; safetyLimit++) {
+        rndX = Math.random() + (Math.random());
+        rndY = Math.random();
+        rndZ = Math.random();
+        rndVec = VectorMult(Vector3((rndX - 0.5), (rndY - 0.5), (rndZ - 0.5)), Vector3(2, 2, 2))
         if (magnitude(rndVec) <= 1) {
             rndVec = normalize(rndVec);
             break;
@@ -87,12 +101,12 @@ function VectorBounce(_vec3, _normal) {
     if (VectorDotProduct(rndVec, _normal) < 0) {
         rndVec = VectorScalarMult(rndVec, -1);
     }
-    return rndVec;
-    // return VectorSub(_vec3, VectorScalarMult(_normal, 2 * VectorDotProduct(_vec3, _normal)))
+    let specVec = VectorSub(_vec3, VectorScalarMult(_normal, 2 * VectorDotProduct(_vec3, _normal)))
+    return VectorLerp(specVec, rndVec, _roughness);
 }
 
 function AngToDir(rot) {
-    let forward = normalize(Vector3(Math.sin(rot.y), Math.sin(rot.x) * Math.cos(rot.z), Math.cos(rot.x) * Math.cos(rot.y)));
+    let forward = normalize(Vector3(Math.sin(rot.y) * Math.cos(rot.x), Math.sin(rot.x) * Math.cos(rot.z), Math.cos(rot.x) * Math.cos(rot.y)));
     let rightward = VectorRight(forward);
     let upward = VectorUp(forward);
     return { "forward": forward, "right": rightward, "up": upward };
@@ -124,6 +138,14 @@ function lerp(a, b, f) {
     return (a * (1 - f)) + (b * f)
 }
 
-function clamp(_value, _min, _max){
+function clamp(_value, _min, _max) {
     return Math.min(Math.max(_value, _min), _max);
+}
+
+function smoothStep(_minValue, _maxValue, _value) {
+    _value = Math.min(Math.max(_value, _minValue), _maxValue);
+    _value -= _minValue;
+    _maxValue -= _minValue;
+    _value /= _maxValue;
+    return _value;
 }

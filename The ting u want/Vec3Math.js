@@ -105,11 +105,15 @@ function VectorBounce(_vec3, _normal, _roughness, _rndSeed) {
     return VectorLerp(specVec, rndVec, _roughness);
 }
 
+function AngToRay(rot) {
+    return normalize(Vector3(Math.sin(rot.y), Math.sin(rot.x) * Math.cos(rot.z), Math.cos(rot.x) * Math.cos(rot.y)));
+}
+
 function AngToDir(rot) {
-    let forward = normalize(Vector3(Math.sin(rot.y) * Math.cos(rot.x), Math.sin(rot.x) * Math.cos(rot.z), Math.cos(rot.x) * Math.cos(rot.y)));
-    let rightward = VectorRight(forward);
-    let upward = VectorUp(forward);
-    return { "forward": forward, "right": rightward, "up": upward };
+    let front = normalize(Vector3(Math.sin(rot.y), Math.sin(rot.x) * Math.cos(rot.y), Math.cos(rot.x) * Math.cos(rot.y)));
+    let right = VectorRight(front);
+    let up = VectorUp(front);
+    return { "front": front, "right": right, "up": up };
 }
 
 function DirToAng(Z1, Y1, X1) {

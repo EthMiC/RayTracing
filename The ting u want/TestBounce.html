@@ -12,56 +12,9 @@
     <canvas width="500" height="400" id="glcanvas"></canvas>
     <script src="Vec3Math.js"></script>
     <script>
-        var canv = document.getElementById("glcanvas");
-        var ctx = canv.getContext("2d");
+        
+        console.log(VectorCrossProduct(Vector3(0, 1, 0), Vector3(0, 0, -1)));
 
-        setInterval(check, 10);
-
-        function check(){
-            let defRND = Math.random();
-            let myRND = randomValue(Math.trunc(defRND * 100) + 1367338163);
-
-            defRND = Math.trunc(defRND * 5);
-            myRND = Math.trunc(myRND * 5);
-
-            ctx.fillStyle = "rgba(10, 100, 200, 0.01)"
-
-            switch(defRND){
-                case 0:
-                    ctx.fillRect(0, 0, 100, 200);
-                    break;
-                case 1:
-                    ctx.fillRect(100, 0, 100, 200);
-                    break;
-                case 2:
-                    ctx.fillRect(200, 0, 100, 200);
-                    break;
-                case 3:
-                    ctx.fillRect(300, 0, 100, 200);
-                    break;
-                case 4:
-                    ctx.fillRect(400, 0, 100, 200);
-                    break;
-            }
-            
-            switch(myRND){
-                case 0:
-                    ctx.fillRect(0, 200, 100, 200);
-                    break;
-                case 1:
-                    ctx.fillRect(100, 200, 100, 200);
-                    break;
-                case 2:
-                    ctx.fillRect(200, 200, 100, 200);
-                    break;
-                case 3:
-                    ctx.fillRect(300, 200, 100, 200);
-                    break;
-                case 4:
-                    ctx.fillRect(400, 200, 100, 200);
-                    break;
-            }
-        }
     </script>
 </body>
 

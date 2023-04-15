@@ -1,4 +1,4 @@
-var renderResolution = { "x": 250, "y": 250 };
+var renderResolution = { "x": 100, "y": 100 };
 var aspectRatio = renderResolution.x / renderResolution.y;
 var projectResolution = { "x": 1000, "y": 1000 };
 var bounces = 1;
@@ -9,7 +9,6 @@ canv.height = projectResolution.y;
 var ctx = canv.getContext("2d");
 var clrs = [];
 var subtractableTime;
-var times = [];
 var time = Date.now();
 var maxFrameRate = 0;
 let frameRate = 0;
@@ -22,14 +21,14 @@ function render() {
     let anglePerPixelX = (Cam.fov) / renderResolution.x;
     let anglePerPixelY = (Cam.fov) / renderResolution.y;
     let startPixelX = (Cam.fov / 2) - (anglePerPixelX / 2);
-    let startPixelY = (Cam.fov / 2) - (anglePerPixelY);
+    let startPixelY = (Cam.fov / 2) - (anglePerPixelY / 2);
     // let pixels = [];
     for (let x = 0; x < renderResolution.x; x++) {
         // pixels.push([]);
         for (let y = 0; y < renderResolution.y; y++) {
             let obj;
             let clr = Color(0, 0, 0, true);
-            let r = new ray(Vector3(Cam.trans.pos.x, Cam.trans.pos.y, Cam.trans.pos.z), AngToDir(VectorAdd(Cam.trans.rot, Vector3(((startPixelY - (anglePerPixelY * y)) / aspectRatio), startPixelX - (anglePerPixelX * x), 0))).forward);
+            let r = new ray(Vector3(Cam.trans.pos.x, Cam.trans.pos.y, Cam.trans.pos.z), AngToRay(VectorAdd(Cam.trans.rot, Vector3(((startPixelY - (anglePerPixelY * y)) / aspectRatio), startPixelX - (anglePerPixelX * x), 0))));
             let rayClr = Color(255, 255, 255);
             let lightClr = Color(0, 0, 0, true);
             for (let i = bounces; i >= 0; i--) {
@@ -40,12 +39,12 @@ function render() {
                         // clr = ColorAdd(clr, ColorScalarMult(dls(r.hitPoint, obj), Math.pow(InverseSquareLaw(dists[x][y]), 1/4)));
                         rayClr = ColorMult(rayClr, obj.clr);
                         r.trans.pos = hitData.hitPoint;
-                        let roughness = i <= 1 ? 1 : 0.22;
+                        let roughness = i <= 1 ? 1 : obj.roughness;
                         r.trans.dir = VectorBounce(r.trans.dir, hitData.hitNormal, roughness, ((frame * renderResolution.x * renderResolution.y * bounces) + (x * renderResolution.y * bounces) + (y * bounces) + (i)));
                     }
                     else {
                         // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)), bounces + 1));
-                        lightClr = ColorAdd(lightClr, ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)));
+                        lightClr = ColorAdd(lightClr, ColorScalarMult(obj.clr, obj.calcPower(hitData.hitPoint)));
                         break;
                     }
                 }
@@ -73,16 +72,12 @@ function render() {
     }
 
     let timeNow = Date.now();
-    times.push(timeNow - time);
-    if (frame > 10) {
-        ctx.font = "30px Arial Red";
-        ctx.fillStyle = "red";
-        frameRate = lerp(frameRate, 1000 / ((times[0] + times[1] + times[2] + times[3] + times[4] + times[5] + times[6] + times[7] + times[8] + times[9]) / 10), 0.25);
-        maxFrameRate = Math.max(maxFrameRate, frameRate);
-        ctx.fillText(frameRate >= 1 ? "fps : " + truncTill2(frameRate) : "spf : " + truncTill2(1 / frameRate), 10, 50);
-        ctx.fillText(maxFrameRate >= 1 ? "Best fps : " + truncTill2(maxFrameRate) : "Best spf : " + truncTill2(1 / maxFrameRate), 10, 100);
-        times.shift(0, 1);
-    }
+    ctx.font = "30px Arial Red";
+    ctx.fillStyle = "red";
+    frameRate = 1000 / (timeNow - time);
+    maxFrameRate = Math.max(maxFrameRate, frameRate);
+    ctx.fillText(frameRate >= 1 ? "fps : " + truncTill2(frameRate) : "spf : " + truncTill2(1 / frameRate), 10, 50);
+    ctx.fillText(maxFrameRate >= 1 ? "Best fps : " + truncTill2(maxFrameRate) : "Best spf : " + truncTill2(1 / maxFrameRate), 10, 100);
     time = timeNow;
 }
 
@@ -120,9 +115,49 @@ class ray {
     checkBounds(_obj) {
         let neg = _obj.negCorner;
         let pos = _obj.posCorner;
+        let norms = [
+            { "dst": pos.x, "dir": Vector3(1, 0, 0) },
+            { "dst": pos.y, "dir": Vector3(0, 1, 0) },
+            { "dst": pos.z, "dir": Vector3(0, 0, 1) },
+            { "dst": neg.x, "dir": Vector3(-1, 0, 0) },
+            { "dst": neg.y, "dir": Vector3(0, -1, 0) },
+            { "dst": neg.z, "dir": Vector3(0, 0, -1) }
+        ]
+
+        for (let colls = 0; colls < norms.length; colls++) {
+            let n = norms[colls];
+            let det = -VectorDotProduct(this.trans.dir, n.dir);
+            let invDet = 1 / det;
+
+            let offsetPos = VectorSub(VectorSub(this.trans.pos, _obj.trans.pos), VectorScalarMult(n.dir, Math.abs(n.dst)));
+            let dst = VectorDotProduct(offsetPos, n.dir) * invDet;
+
+            if (det > 1E-6) {
+                let hitPoint = VectorAdd(offsetPos, VectorScalarMult(this.trans.dir, dst));
+                if (Math.abs(n.dir.x) == 1) {
+                    if (hitPoint.y < pos.y && hitPoint.y > neg.y &&
+                        hitPoint.z < pos.z && hitPoint.z > neg.z) {
+                        return true;
+                    }
+                }
+                else if (Math.abs(n.dir.y) == 1) {
+                    if (hitPoint.x < pos.x && hitPoint.x > neg.x &&
+                        hitPoint.z < pos.z && hitPoint.z > neg.z) {
+                        return true;
+                    }
+                }
+                else if (Math.abs(n.dir.z) == 1) {
+                    if (hitPoint.y < pos.y && hitPoint.y > neg.y &&
+                        hitPoint.x < pos.x && hitPoint.x > neg.x) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
     shootRay(_obj) {
-        let hit = new HitInfo(); 
+        let hit = new HitInfo();
 
         let minDist = Infinity;
         let minDistInt;
@@ -162,62 +197,65 @@ class ray {
                     }
                 }
                 else {
-                    for (var k = 0; k < o.tris.length; k += 3) {
-                        let p = o.points;
-                        let t = o.tris;
-                        let pA = ()=>{
-                            let defVec = VectorMult(p[t[k]], o.trans.scale);
-                            let orientation = AngToDir(o.trans.rot);
-                            let forVec = VectorScalarMult(orientation.forward, defVec.z);
-                            let upVec = VectorScalarMult(orientation.up, defVec.y);
-                            let rigVec = VectorScalarMult(orientation.right, defVec.x);
-                            return VectorAdd(VectorAdd(forVec, rigVec), upVec);
-                        }
-                        let pB = ()=>{
-                            let defVec = VectorMult(p[t[k + 1]], o.trans.scale);
-                            let orientation = AngToDir(o.trans.rot);
-                            let forVec = VectorScalarMult(orientation.forward, defVec.z);
-                            let upVec = VectorScalarMult(orientation.up, defVec.y);
-                            let rigVec = VectorScalarMult(orientation.right, defVec.x);
-                            return VectorAdd(VectorAdd(forVec, rigVec), upVec);
-                        }
-                        let pC = ()=>{
-                            let defVec = VectorMult(p[t[k + 2]], o.trans.scale);
-                            let orientation = AngToDir(o.trans.rot);
-                            let forVec = VectorScalarMult(orientation.forward, defVec.z);
-                            let upVec = VectorScalarMult(orientation.up, defVec.y);
-                            let rigVec = VectorScalarMult(orientation.right, defVec.x);
-                            return VectorAdd(VectorAdd(forVec, rigVec), upVec);
-                        }
-                        let edgeAB = VectorSub(pB(), pA());
-                        let edgeAC = VectorSub(pC(), pA());
-                        let normal = VectorCrossProduct(edgeAB, edgeAC);
+                    if (this.checkBounds(o)) {
+                        for (var k = 0; k < o.tris.length; k += 3) {
+                            let p = o.points;
+                            let t = o.tris;
+                            let pA = () => {
+                                let defVec = VectorMult(p[t[k]], o.trans.scale);
+                                let orientation = AngToDir(o.trans.rot);
+                                let forVec = VectorScalarMult(orientation.front, defVec.z);
+                                let upVec = VectorScalarMult(orientation.up, defVec.y);
+                                let rigVec = VectorScalarMult(orientation.right, defVec.x);
+                                return VectorAdd(VectorAdd(forVec, rigVec), upVec);
+                            }
+                            let pB = () => {
+                                let defVec = VectorMult(p[t[k + 1]], o.trans.scale);
+                                let orientation = AngToDir(o.trans.rot);
+                                let forVec = VectorScalarMult(orientation.front, defVec.z);
+                                let upVec = VectorScalarMult(orientation.up, defVec.y);
+                                let rigVec = VectorScalarMult(orientation.right, defVec.x);
+                                return VectorAdd(VectorAdd(forVec, rigVec), upVec);
+                            }
+                            let pC = () => {
+                                let defVec = VectorMult(p[t[k + 2]], o.trans.scale);
+                                let orientation = AngToDir(o.trans.rot);
+                                let forVec = VectorScalarMult(orientation.front, defVec.z);
+                                let upVec = VectorScalarMult(orientation.up, defVec.y);
+                                let rigVec = VectorScalarMult(orientation.right, defVec.x);
+                                return VectorAdd(VectorAdd(forVec, rigVec), upVec);
+                            }
+                            let edgeAB = VectorSub(pB(), pA());
+                            let edgeAC = VectorSub(pC(), pA());
+                            let normal = VectorCrossProduct(edgeAB, edgeAC);
 
-                        o.normal = normalize(normal);
+                            let offsetPos = VectorSub(this.trans.pos, o.trans.pos);
+                            if (o == _obj) {
+                                offsetPos = VectorSub(VectorAdd(this.trans.pos, VectorScalarDiv(this.trans.dir, -10)), o.trans.pos);
+                            }
 
-                        let offsetPos = VectorSub(this.trans.pos, o.trans.pos);
-                        if (o == _obj) {
-                            offsetPos = VectorSub(VectorAdd(this.trans.pos, VectorScalarDiv(this.trans.dir, -10)), o.trans.pos);
-                        }
+                            let ao = VectorSub(offsetPos, pA());
+                            let dao = VectorCrossProduct(ao, this.trans.dir);
 
-                        let ao = VectorSub(offsetPos, pA());
-                        let dao = VectorCrossProduct(ao, this.trans.dir);
+                            let det = -VectorDotProduct(this.trans.dir, normal);
+                            let invDet = 1 / det;
 
-                        let det = -VectorDotProduct(this.trans.dir, normal);
-                        let invDet = 1 / det;
+                            let dst = VectorDotProduct(ao, normal) * invDet;
+                            let u = VectorDotProduct(edgeAC, dao) * invDet;
+                            let v = -VectorDotProduct(edgeAB, dao) * invDet;
+                            let w = 1 - u - v;
 
-                        let dst = VectorDotProduct(ao, normal) * invDet;
-                        let u = VectorDotProduct(edgeAC, dao) * invDet;
-                        let v = -VectorDotProduct(edgeAB, dao) * invDet;
-                        let w = 1 - u - v;
+                            // console.log(normal);
+                            // console.log(Math.sign(det), Math.sign(dst));
 
-                        if (det >= 1E-6 && dst >= 0 && u >= 0 && v >= 0 && w >= 0) {
-                            if (dst < minDist) {
-                                hit.hit = true;
-                                minDist = dst;
-                                minDistInt = j;
-                                minDistType = "Object";
-                                finalNormal = normalize(normal);
+                            if (det >= 1E-6 && dst >= 0 && u >= 0 && v >= 0 && w >= 0) {
+                                if (dst < minDist) {
+                                    hit.hit = true;
+                                    minDist = dst;
+                                    minDistInt = j;
+                                    minDistType = "Object";
+                                    finalNormal = normalize(normal);
+                                }
                             }
                         }
                     }
@@ -257,7 +295,7 @@ class ray {
     }
 }
 
-class HitInfo{
+class HitInfo {
     constructor() {
         this.hit = false;
         this.hitPoint;

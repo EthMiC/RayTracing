@@ -12,8 +12,16 @@
     <canvas width="500" height="400" id="glcanvas"></canvas>
     <script src="Vec3Math.js"></script>
     <script>
-        
-        console.log(VectorCrossProduct(Vector3(0, 1, 0), Vector3(0, 0, -1)));
+        var front = normalize(Vector3(Math.random(), Math.random(), Math.random()));
+        // var front = normalize(Vector3(Math.random(), 0, 0));
+        var right = VectorCrossProduct(front, Vector3(0, -1, 0));
+        var up = VectorCrossProduct(front, right);
+        var rot = DirToAng(front, up, right);
+        console.log(front);
+        console.log(right);
+        console.log(up);
+        console.log(rot);
+        console.log(AngToDir(rot));
 
     </script>
 </body>

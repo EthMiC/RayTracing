@@ -14,23 +14,29 @@ class object {
         if (this.type == "Mesh") {
             this.points = _points;
             this.tris = _tris;
-            this.negCorner = Vector3(0, 0, 0);
-            this.posCorner = Vector3(0, 0, 0);
-            let fnlVec = (_raw) => {
-                let defVec = VectorMult(_raw, this.trans.scale);
-                let orientation = AngToDir(this.trans.rot);
-                let forVec = VectorScalarMult(orientation.front, defVec.z);
-                let upVec = VectorScalarMult(orientation.up, defVec.y);
-                let rigVec = VectorScalarMult(orientation.right, defVec.x);
-                return VectorAdd(VectorAdd(forVec, rigVec), upVec);
-            }
-            for (let i = 0; i < this.points.length; i++) {
-                let p = fnlVec(this.points[i]);
-                this.negCorner = Vector3(Math.min(p.x, this.negCorner.x), Math.min(p.y, this.negCorner.y), Math.min(p.z, this.negCorner.z));
-                this.posCorner = Vector3(Math.max(p.x, this.posCorner.x), Math.max(p.y, this.posCorner.y), Math.max(p.z, this.posCorner.z));
-            }
+            this.updateBounds();
         }
     }
+    updateBounds() {
+        this.negCorner = Vector3(0, 0, 0);
+        this.posCorner = Vector3(0, 0, 0);
+        let fnlVec = (_raw) => {
+            let defVec = VectorMult(_raw, this.trans.scale);
+            let orientation = AngToDir(this.trans.rot);
+            let forVec = VectorScalarMult(orientation.front, defVec.z);
+            let upVec = VectorScalarMult(orientation.up, defVec.y);
+            let rigVec = VectorScalarMult(orientation.right, defVec.x);
+            return VectorAdd(VectorAdd(forVec, rigVec), upVec);
+        }
+        for (let i = 0; i < this.points.length; i++) {
+            let p = fnlVec(this.points[i]);
+            this.negCorner = Vector3(Math.min(p.x, this.negCorner.x), Math.min(p.y, this.negCorner.y), Math.min(p.z, this.negCorner.z));
+            this.posCorner = Vector3(Math.max(p.x, this.posCorner.x), Math.max(p.y, this.posCorner.y), Math.max(p.z, this.posCorner.z));
+        }
+        // console.log(this.trans);
+        // console.log(Dist(this.negCorner, this.posCorner));
+    }
+
 }
 
 class cam {
@@ -154,10 +160,10 @@ function addObject(_type, _pos, _i1, _i2, _i3, _i4, _i5, _i6) {
             scale = i2;
             clr = i3;
             roughness = i4;
-            rings = i5;
-            colss = i6;
+            rings = i5[0];
+            colss = i5[1];
             */
-            let cylinderData = makeCylinder(Math.max(_i5, 2), Math.max(_i6, 3));
+            let cylinderData = makeCylinder(Math.max(_i5[0], 2), Math.max(_i5[1], 3));
             objects.push(new object(_pos, _i1, _i2, _i3, _i4, "Mesh", cylinderData.verts, cylinderData.tris));
             break;
         default:
@@ -166,7 +172,7 @@ function addObject(_type, _pos, _i1, _i2, _i3, _i4, _i5, _i6) {
             scale = i2;
             clr = i3;
             */
-            objects.push(new object(_pos, _i1, _i2, _i3, _i4, _type));
+            objects.push(new object(_pos, _i1, Vector3(_i2, 0, 0), _i3, _i4, _type));
             break;
     }
 }
@@ -189,10 +195,10 @@ function makeCylinder(_rings, _cols) {
         for (let c = 1; c <= _cols; c++) {
             switch (r) {
                 case 1:
-                    tris.push(c, 0, c >= _cols ? 1 : c + 1);
+                    tris.push(0, c, c >= _cols ? 1 : c + 1);
                     break;
                 case _rings + 1:
-                    tris.push((_rings * _cols) + 1, ((_rings - 1) * _cols) + c, c >= _cols ? ((_rings - 1) * _cols) + 1 : ((_rings - 1) * _cols) + c + 1);
+                    tris.push(((_rings - 1) * _cols) + c, (_rings * _cols) + 1, c >= _cols ? ((_rings - 1) * _cols) + 1 : ((_rings - 1) * _cols) + c + 1);
                     break
                 default:
                     tris.push((r - 2) * _cols + c, (r - 1) * _cols + c, c >= _cols ? (r - 1) * _cols + 1 : (r - 1) * _cols + c + 1);

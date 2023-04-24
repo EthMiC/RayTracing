@@ -1,7 +1,7 @@
-var renderResolution = { "x": 100, "y": 100 };
+var renderResolution = { "x": 5, "y": 1 };
 var aspectRatio = renderResolution.x / renderResolution.y;
-var projectResolution = { "x": 1000, "y": 1000 };
-var bounces = 1;
+var projectResolution = { "x": 5000, "y": 1000 };
+var bounces = 2;
 
 var canv = document.getElementById('canvas');
 canv.width = projectResolution.x;
@@ -28,7 +28,7 @@ function render() {
         for (let y = 0; y < renderResolution.y; y++) {
             let obj;
             let clr = Color(0, 0, 0, true);
-            let r = new ray(Vector3(Cam.trans.pos.x, Cam.trans.pos.y, Cam.trans.pos.z), AngToRay(VectorAdd(Cam.trans.rot, Vector3(((startPixelY - (anglePerPixelY * y)) / aspectRatio), startPixelX - (anglePerPixelX * x), 0))));
+            let r = new ray(Vector3(Cam.trans.pos.x, Cam.trans.pos.y, Cam.trans.pos.z), AngToRay(AngToDir(Cam.trans.rot), Vector3(((startPixelY - (anglePerPixelY * y)) / aspectRatio), startPixelX - (anglePerPixelX * x), 0)));
             let rayClr = Color(255, 255, 255);
             let lightClr = Color(0, 0, 0, true);
             for (let i = bounces; i >= 0; i--) {
@@ -57,15 +57,17 @@ function render() {
             clr = ColorScalarMult(ColorMult(lightClr, rayClr), 2);
             let weight = 1 / (frame);
             clrs[x][y] = ColorAdd(ColorScalarMult(clrs[x][y], 1 - weight), ColorScalarMult(clr, weight));
+            // clrs[x][y] = clr;
             // pixels[x][y] = scaleLight(clrs[x][y]);
         }
     }
 
     let xScale = projectResolution.x / renderResolution.x;
     let yScale = (projectResolution.y / renderResolution.y);
+    ctx.clearRect(0, 0, projectResolution.x, projectResolution.y);
     for (let x = 0; x < renderResolution.x; x++) {
         for (let y = 0; y < renderResolution.y; y++) {
-            let c = scaleLight(clrs[renderResolution.x - x - 1][renderResolution.y - y - 1]);
+            let c = scaleLight(clrs[renderResolution.x - x - 1][y]);
             ctx.fillStyle = c;
             ctx.fillRect(x * xScale, (renderResolution.y - y - 1) * yScale, xScale, yScale);
         }
@@ -75,10 +77,15 @@ function render() {
     ctx.font = "30px Arial Red";
     ctx.fillStyle = "red";
     frameRate = 1000 / (timeNow - time);
-    maxFrameRate = Math.max(maxFrameRate, frameRate);
     ctx.fillText(frameRate >= 1 ? "fps : " + truncTill2(frameRate) : "spf : " + truncTill2(1 / frameRate), 10, 50);
-    ctx.fillText(maxFrameRate >= 1 ? "Best fps : " + truncTill2(maxFrameRate) : "Best spf : " + truncTill2(1 / maxFrameRate), 10, 100);
+    if (frame > 2) {
+        maxFrameRate = Math.max(maxFrameRate, frameRate);
+        ctx.fillText(maxFrameRate >= 1 ? "Best fps : " + truncTill2(maxFrameRate) : "Best spf : " + truncTill2(1 / maxFrameRate), 10, 100);
+    }
     time = timeNow;
+    // objects[1].trans.rot.x+=0.01;
+    // objects[1].trans.rot.z+=0.02;
+    // objects[1].updateBounds();
 }
 
 function truncTill2(_val) {

@@ -1,7 +1,7 @@
-var renderResolution = { "x": 5, "y": 1 };
+var renderResolution = { "x": 100, "y": 100 };
 var aspectRatio = renderResolution.x / renderResolution.y;
-var projectResolution = { "x": 5000, "y": 1000 };
-var bounces = 2;
+var projectResolution = { "x": 1000, "y": 1000 };
+var bounces = 4;
 
 var canv = document.getElementById('canvas');
 canv.width = projectResolution.x;
@@ -18,17 +18,13 @@ function render() {
         frame++;
         render(objects[0]);
     }, 0)
-    let anglePerPixelX = (Cam.fov) / renderResolution.x;
-    let anglePerPixelY = (Cam.fov) / renderResolution.y;
-    let startPixelX = (Cam.fov / 2) - (anglePerPixelX / 2);
-    let startPixelY = (Cam.fov / 2) - (anglePerPixelY / 2);
     // let pixels = [];
     for (let x = 0; x < renderResolution.x; x++) {
         // pixels.push([]);
         for (let y = 0; y < renderResolution.y; y++) {
             let obj;
             let clr = Color(0, 0, 0, true);
-            let r = new ray(Vector3(Cam.trans.pos.x, Cam.trans.pos.y, Cam.trans.pos.z), AngToRay(AngToDir(Cam.trans.rot), Vector3(((startPixelY - (anglePerPixelY * y)) / aspectRatio), startPixelX - (anglePerPixelX * x), 0)));
+            let r = new ray(Vector3(Cam.trans.pos.x, Cam.trans.pos.y, Cam.trans.pos.z), AngToRay(AngToDir(Cam.trans.rot), Vector3(0, ((startPixelY - (anglePerPixelY * y)) / aspectRatio), startPixelX - (anglePerPixelX * x))));
             let rayClr = Color(255, 255, 255);
             let lightClr = Color(0, 0, 0, true);
             for (let i = bounces; i >= 0; i--) {
@@ -38,13 +34,14 @@ function render() {
                     if (obj.type != "Light") {
                         // clr = ColorAdd(clr, ColorScalarMult(dls(r.hitPoint, obj), Math.pow(InverseSquareLaw(dists[x][y]), 1/4)));
                         rayClr = ColorMult(rayClr, obj.clr);
+                        // rayClr = obj.clr;
                         r.trans.pos = hitData.hitPoint;
                         let roughness = i <= 1 ? 1 : obj.roughness;
                         r.trans.dir = VectorBounce(r.trans.dir, hitData.hitNormal, roughness, ((frame * renderResolution.x * renderResolution.y * bounces) + (x * renderResolution.y * bounces) + (y * bounces) + (i)));
                     }
                     else {
                         // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)), bounces + 1));
-                        lightClr = ColorAdd(lightClr, ColorScalarMult(obj.clr, obj.calcPower(hitData.hitPoint)));
+                        lightClr = ColorAdd(lightClr, obj.clr);
                         break;
                     }
                 }
@@ -58,6 +55,7 @@ function render() {
             let weight = 1 / (frame);
             clrs[x][y] = ColorAdd(ColorScalarMult(clrs[x][y], 1 - weight), ColorScalarMult(clr, weight));
             // clrs[x][y] = clr;
+            // clrs[x][y] = rayClr;
             // pixels[x][y] = scaleLight(clrs[x][y]);
         }
     }
@@ -84,8 +82,9 @@ function render() {
     }
     time = timeNow;
     // objects[1].trans.rot.x+=0.01;
-    // objects[1].trans.rot.z+=0.02;
-    // objects[1].updateBounds();
+    // objects[1].trans.rot.y+=0.02;
+    // objects[1].trans.rot.z+=0.0257;
+    // objects[1].update();
 }
 
 function truncTill2(_val) {
@@ -210,26 +209,23 @@ class ray {
                             let t = o.tris;
                             let pA = () => {
                                 let defVec = VectorMult(p[t[k]], o.trans.scale);
-                                let orientation = AngToDir(o.trans.rot);
-                                let forVec = VectorScalarMult(orientation.front, defVec.z);
-                                let upVec = VectorScalarMult(orientation.up, defVec.y);
-                                let rigVec = VectorScalarMult(orientation.right, defVec.x);
+                                let forVec = VectorScalarMult(o.orientation.front, defVec.x);
+                                let rigVec = VectorScalarMult(o.orientation.right, defVec.y);
+                                let upVec = VectorScalarMult(o.orientation.up, defVec.z);
                                 return VectorAdd(VectorAdd(forVec, rigVec), upVec);
                             }
                             let pB = () => {
                                 let defVec = VectorMult(p[t[k + 1]], o.trans.scale);
-                                let orientation = AngToDir(o.trans.rot);
-                                let forVec = VectorScalarMult(orientation.front, defVec.z);
-                                let upVec = VectorScalarMult(orientation.up, defVec.y);
-                                let rigVec = VectorScalarMult(orientation.right, defVec.x);
+                                let forVec = VectorScalarMult(o.orientation.front, defVec.x);
+                                let rigVec = VectorScalarMult(o.orientation.right, defVec.y);
+                                let upVec = VectorScalarMult(o.orientation.up, defVec.z);
                                 return VectorAdd(VectorAdd(forVec, rigVec), upVec);
                             }
                             let pC = () => {
                                 let defVec = VectorMult(p[t[k + 2]], o.trans.scale);
-                                let orientation = AngToDir(o.trans.rot);
-                                let forVec = VectorScalarMult(orientation.front, defVec.z);
-                                let upVec = VectorScalarMult(orientation.up, defVec.y);
-                                let rigVec = VectorScalarMult(orientation.right, defVec.x);
+                                let forVec = VectorScalarMult(o.orientation.front, defVec.x);
+                                let rigVec = VectorScalarMult(o.orientation.right, defVec.y);
+                                let upVec = VectorScalarMult(o.orientation.up, defVec.z);
                                 return VectorAdd(VectorAdd(forVec, rigVec), upVec);
                             }
                             let edgeAB = VectorSub(pB(), pA());

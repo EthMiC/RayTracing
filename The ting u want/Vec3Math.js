@@ -89,7 +89,7 @@ function VectorBounce(_vec3, _normal, _roughness, _rndSeed) {
     let rndY;
     let rndZ;
     for (let safetyLimit = 0; safetyLimit < 100; safetyLimit++) {
-        rndX = Math.random() + (Math.random());
+        rndX = Math.random();
         rndY = Math.random();
         rndZ = Math.random();
         rndVec = VectorMult(Vector3((rndX - 0.5), (rndY - 0.5), (rndZ - 0.5)), Vector3(2, 2, 2))
@@ -106,35 +106,42 @@ function VectorBounce(_vec3, _normal, _roughness, _rndSeed) {
 }
 
 function AngToRay(_or, rot) {
-    let defVec = normalize(Vector3(Math.sin(rot.y), -Math.sin(rot.x) * Math.cos(rot.y), Math.cos(rot.x) * Math.cos(rot.y)));
-    let forVec = VectorScalarMult(_or.front, defVec.z);
-    let upVec = VectorScalarMult(_or.up, defVec.y);
-    let rigVec = VectorScalarMult(_or.right, defVec.x);
+    let defVec = normalize(Vector3(Math.cos(rot.y) * Math.cos(rot.z), Math.sin(rot.z), -Math.sin(rot.y) * Math.cos(rot.z)));
+    let forVec = VectorScalarMult(_or.front, defVec.x);
+    let rigVec = VectorScalarMult(_or.right, defVec.y);
+    let upVec = VectorScalarMult(_or.up, defVec.z);
     return VectorAdd(VectorAdd(forVec, rigVec), upVec);
+    return defVec;
 }
 
 function AngToDir(rot) {
-    let front = normalize(Vector3(Math.sin(rot.y), -Math.sin(rot.x) * Math.cos(rot.y), Math.cos(rot.x) * Math.cos(rot.y)));
-    let up = normalize(Vector3(-Math.cos(rot.x) * Math.sin(rot.z), (Math.cos(rot.x) * Math.cos(rot.z)) - (Math.sin(rot.x) * Math.sin(rot.z)), (Math.sin(rot.x) * Math.cos(rot.z)) + (Math.sin(rot.x) * Math.sin(rot.y) * Math.sin(rot.z))));
-    let right = VectorCrossProduct(up, front);
+    let Sx = Math.sin(rot.x);
+    let Sy = Math.sin(rot.y);
+    let Sz = Math.sin(rot.z);
+    let Cx = Math.cos(rot.x);
+    let Cy = Math.cos(rot.y);
+    let Cz = Math.cos(rot.z);
+    let front = normalize(Vector3(Cy*Cz, -Cy*Sz, Sy));
+    let right = normalize(Vector3(Cz*Sx*Sy+Cx*Sz, Cx*Cz-Sx*Sy*Sz, -Cy*Sx));
+    let up = normalize(Vector3(-Cx*Cz*Sy+Sx*Sz, Cz*Sx+Cx*Sy*Sz, Cx*Cy));
     return { "front": front, "right": right, "up": up };
 }
 
-function DirToAng(Z1, Y1, X1) {
-    Z1 = normalize(Z1);
-    if (Y1 && X1) {
+function DirToAng(X1, Y1, Z1) {
+    X1 = normalize(X1);
+    if (Y1 && Z1) {
         Y1 = normalize(Y1);
-        X1 = normalize(Z1);
+        Z1 = normalize(Z1);
     }
     else {
-        Y1 = Vectorup(Z1);
-        X1 = VectorRight(Z1);
+        Y1 = VectorRight(Z1);
+        Z1 = VectorUp(Z1);
     }
-    let Y = Math.abs(VectorDotProduct(Vector3(1, 0, 0), Z1)) != 1 ? normalize(VectorCrossProduct(Z1, Vector3(1, 0, 0))) : Vector3(0, 1, 0);
-    let X = normalize(VectorCrossProduct(Y, Z1));
-    z_vec3Angle = VectorFindAngleBetween(Y1, Y, Z1);
-    y_vec3Angle = VectorFindAngleBetween(Vector3(1, 0, 0), X, Y);
-    x_vec3Angle = Math.atan2(Y.z, Y.y);
+    let Y = Math.abs(VectorDotProduct(Vector3(0, 0, 1), X1)) != 1 ? normalize(VectorCrossProduct(X1, Vector3(0, 0, -1))) : Vector3(0, 1, 0);
+    let Z = normalize(VectorCrossProduct(X1, Y));
+    x_vec3Angle = VectorFindAngleBetween(Y1, Y, X1);
+    y_vec3Angle = VectorFindAngleBetween(Vector3(0, 0, 1), Z, Y);
+    z_vec3Angle = Math.atan2(Y.x, Y.y);
     return Vector3(x_vec3Angle, y_vec3Angle, z_vec3Angle);
 }
 

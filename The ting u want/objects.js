@@ -11,21 +11,22 @@ class object {
         this.clr = _clr;
         this.roughness = _roughness;
         this.type = _type;
+        this.orientation;
         if (this.type == "Mesh") {
             this.points = _points;
             this.tris = _tris;
-            this.updateBounds();
+            this.update();
         }
     }
-    updateBounds() {
+    update() {
+        this.orientation = AngToDir(this.trans.rot);
         this.negCorner = Vector3(0, 0, 0);
         this.posCorner = Vector3(0, 0, 0);
         let fnlVec = (_raw) => {
             let defVec = VectorMult(_raw, this.trans.scale);
-            let orientation = AngToDir(this.trans.rot);
-            let forVec = VectorScalarMult(orientation.front, defVec.z);
-            let upVec = VectorScalarMult(orientation.up, defVec.y);
-            let rigVec = VectorScalarMult(orientation.right, defVec.x);
+            let forVec = VectorScalarMult(this.orientation.front, defVec.x);
+            let rigVec = VectorScalarMult(this.orientation.right, defVec.y);
+            let upVec = VectorScalarMult(this.orientation.up, defVec.z);
             return VectorAdd(VectorAdd(forVec, rigVec), upVec);
         }
         for (let i = 0; i < this.points.length; i++) {
@@ -33,8 +34,9 @@ class object {
             this.negCorner = Vector3(Math.min(p.x, this.negCorner.x), Math.min(p.y, this.negCorner.y), Math.min(p.z, this.negCorner.z));
             this.posCorner = Vector3(Math.max(p.x, this.posCorner.x), Math.max(p.y, this.posCorner.y), Math.max(p.z, this.posCorner.z));
         }
+        // console.log(Dist(Vector3(0, 0, 0), VectorAdd(VectorAdd(this.orientation.front, this.orientation.up), this.orientation.right)));
         // console.log(this.trans);
-        // console.log(Dist(this.negCorner, this.posCorner));
+        // console.log(Dist(fnlVec(this.points[0]), fnlVec(this.points[7])));
     }
 
 }
@@ -82,14 +84,14 @@ class World {
         this.sunAngle = _sunAngle;
     }
     getSunDir() {
-        return normalize(Vector3(Math.sin(this.sunAngle) * Math.cos(this.sunElavation), Math.sin(this.sunElavation), Math.cos(this.sunAngle) * Math.cos(this.sunElavation)));
+        return normalize(Vector3(Math.cos(this.sunAngle) * Math.cos(this.sunElavation), Math.sin(this.sunAngle) * Math.cos(this.sunElavation), Math.sin(this.sunElavation)));
     }
     getColor(_dir) {
-        let skyClr = ColorLerp(this.horizonClr, this.zenithClr, Math.pow(smoothStep(0, 0.4, _dir.y), 0.35));
+        let skyClr = ColorLerp(this.horizonClr, this.zenithClr, Math.pow(smoothStep(0, 0.4, _dir.z), 0.35));
         let sunFocus = 500;
         let sun = Math.pow(Math.max(0, VectorDotProduct(_dir, this.getSunDir())), sunFocus) * this.sunPwr;
 
-        let ground = smoothStep(-0.01, 0, _dir.y);
+        let ground = smoothStep(-0.01, 0, _dir.z);
         skyClr = ColorLerp(this.groundClr, skyClr, ground);
         let sunMask = ground >= 1;
         return ColorAdd(ColorScalarMult(skyClr, this.skyPwr), ColorScalarMult(ColorScalarMult(this.sunClr, sun), sunMask));
@@ -150,8 +152,8 @@ function addObject(_type, _pos, _i1, _i2, _i3, _i4, _i5, _i6) {
             points = i5;
             tris = i6;
             */
-            let planeVerts = [Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(-1, 0, 1), Vector3(1, 0, 1)];
-            let planeTris = [0, 2, 3, 0, 3, 1];
+            let planeVerts = [Vector3(-1, -1, 0), Vector3(1, -1, 0), Vector3(-1, 1, 0), Vector3(1, 1, 0)];
+            let planeTris = [0, 3, 2, 0, 1, 3];
             objects.push(new object(_pos, _i1, _i2, _i3, _i4, "Mesh", planeVerts, planeTris));
             break;
         case "Cylinder":
@@ -179,17 +181,17 @@ function addObject(_type, _pos, _i1, _i2, _i3, _i4, _i5, _i6) {
 
 function makeCylinder(_rings, _cols) {
     let verts = [];
-    verts.push(Vector3(0, -1, 0));
+    verts.push(Vector3(0, 0, -1));
     for (let r = 0; r < _rings; r++) {
         for (let c = 0; c < _cols; c++) {
-            let x = -Math.sin(2 * Math.PI * c / (_cols));
-            let y = -1 + (2 * r / (_rings - 1));
-            let z = Math.cos(2 * Math.PI * c / (_cols));
-            let circle = normalize(Vector3(x, 0, z));
-            verts.push(VectorAdd(circle, Vector3(0, y, 0)));
+            let x = Math.cos(2 * Math.PI * c / (_cols));
+            let y = -Math.sin(2 * Math.PI * c / (_cols));
+            let z = -1 + (2 * r / (_rings - 1));
+            let circle = normalize(Vector3(x, y, 0));
+            verts.push(VectorAdd(circle, Vector3(0, 0, z)));
         }
     }
-    verts.push(Vector3(0, 1, 0));
+    verts.push(Vector3(0, 0, 1));
     let tris = [];
     for (let r = 1; r <= _rings + 1; r++) {
         for (let c = 1; c <= _cols; c++) {

@@ -111,7 +111,6 @@ function AngToRay(_or, rot) {
     let rigVec = VectorScalarMult(_or.right, defVec.y);
     let upVec = VectorScalarMult(_or.up, defVec.z);
     return VectorAdd(VectorAdd(forVec, rigVec), upVec);
-    return defVec;
 }
 
 function AngToDir(rot) {

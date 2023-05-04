@@ -1,14 +1,15 @@
 var renderResolution = { "x": 100, "y": 100 };
-var aspectRatio = renderResolution.x / renderResolution.y;
 var projectResolution = { "x": 1000, "y": 1000 };
+var aspectRatio = projectResolution.x / projectResolution.y;
 var bounces = 4;
 
 var canv = document.getElementById('canvas');
+var fpsCounter = document.getElementById('fpsCounter');
+var maxFpsCounter = document.getElementById('maxFpsCounter');
 canv.width = projectResolution.x;
 canv.height = projectResolution.y;
 var ctx = canv.getContext("2d");
 var clrs = [];
-var subtractableTime;
 var time = Date.now();
 var maxFrameRate = 0;
 let frameRate = 0;
@@ -23,35 +24,34 @@ function render() {
         // pixels.push([]);
         for (let y = 0; y < renderResolution.y; y++) {
             let obj;
-            let clr = Color(0, 0, 0, true);
+            let clr = Color(0, 0, 0);
             let r = new ray(Vector3(Cam.trans.pos.x, Cam.trans.pos.y, Cam.trans.pos.z), AngToRay(AngToDir(Cam.trans.rot), Vector3(0, ((startPixelY - (anglePerPixelY * y)) / aspectRatio), startPixelX - (anglePerPixelX * x))));
             let rayClr = Color(255, 255, 255);
-            let lightClr = Color(0, 0, 0, true);
+            let incLight = Color(0, 0, 0);
             for (let i = bounces; i >= 0; i--) {
                 let hitData = r.shootRay(obj);
                 if (hitData.hit) {
                     obj = hitData.hitObject;
                     if (obj.type != "Light") {
-                        // clr = ColorAdd(clr, ColorScalarMult(dls(r.hitPoint, obj), Math.pow(InverseSquareLaw(dists[x][y]), 1/4)));
-                        rayClr = ColorMult(rayClr, obj.clr);
-                        // rayClr = obj.clr;
                         r.trans.pos = hitData.hitPoint;
-                        let roughness = i <= 1 ? 1 : obj.roughness;
-                        r.trans.dir = VectorBounce(r.trans.dir, hitData.hitNormal, roughness, ((frame * renderResolution.x * renderResolution.y * bounces) + (x * renderResolution.y * bounces) + (y * bounces) + (i)));
-                    }
-                    else {
-                        // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(obj.clr, obj.calcPower(r.hitPoint)), bounces + 1));
-                        lightClr = ColorAdd(lightClr, obj.clr);
-                        break;
+                        r.trans.dir = VectorBounce(r.trans.dir, hitData.hitNormal, obj.roughness, ((frame * renderResolution.x * renderResolution.y * bounces) + (x * renderResolution.y * bounces) + (y * bounces) + (i)));
+                        // clr = ColorAdd(clr, ColorScalarMult(dls(r.hitPoint, obj), Math.pow(InverseSquareLaw(dists[x][y]), 1/4)));
+                        let emmitedLight = ColorScalarMult(obj.emmClr, obj.emmInteg);
+                        incLight = ColorAdd(incLight, ColorMult(emmitedLight, rayClr));
+                        if (obj.clr == null){
+                            break;
+                        }
+                        // rayClr = obj.clr;
+                        rayClr = ColorScalarMult(ColorMult(rayClr, ColorAdd(obj.clr, obj.emmClr)), VectorDotProduct(r.trans.dir, hitData.hitNormal));
                     }
                 }
                 else {
                     // clr = ColorAdd(clr, ColorScalarDiv(ColorScalarMult(world.clr, world.integ), bounces + 1));
-                    lightClr = ColorAdd(lightClr, world.getColor(r.trans.dir));
+                    incLight = ColorAdd(incLight, ColorMult(world.getColor(r.trans.dir), rayClr));
                     break;
                 }
             }
-            clr = ColorScalarMult(ColorMult(lightClr, rayClr), 2);
+            clr = ColorScalarMult(incLight, 4);
             let weight = 1 / (frame);
             clrs[x][y] = ColorAdd(ColorScalarMult(clrs[x][y], 1 - weight), ColorScalarMult(clr, weight));
             // clrs[x][y] = clr;
@@ -75,10 +75,10 @@ function render() {
     ctx.font = "30px Arial Red";
     ctx.fillStyle = "red";
     frameRate = 1000 / (timeNow - time);
-    ctx.fillText(frameRate >= 1 ? "fps : " + truncTill2(frameRate) : "spf : " + truncTill2(1 / frameRate), 10, 50);
+    fpsCounter.innerHTML = (frameRate >= 1 ? "fps : " + truncTill2(frameRate) : "spf : " + truncTill2(1 / frameRate));
     if (frame > 2) {
         maxFrameRate = Math.max(maxFrameRate, frameRate);
-        ctx.fillText(maxFrameRate >= 1 ? "Best fps : " + truncTill2(maxFrameRate) : "Best spf : " + truncTill2(1 / maxFrameRate), 10, 100);
+        maxFpsCounter.innerHTML = (maxFrameRate >= 1 ? "Best fps : " + truncTill2(maxFrameRate) : "Best spf : " + truncTill2(1 / maxFrameRate)).toString();
     }
     time = timeNow;
     // objects[1].trans.rot.x+=0.01;
@@ -92,7 +92,7 @@ function truncTill2(_val) {
 }
 
 // function dls(_pos, _obj) {
-//     let _clr = Color(0, 0, 0, true);
+//     let _clr = Color(0, 0, 0);
 //     let dir;
 //     for (let i = 0; i < lights.length; i++) {
 //         l = lights[i];
@@ -141,20 +141,20 @@ class ray {
             if (det > 1E-6) {
                 let hitPoint = VectorAdd(offsetPos, VectorScalarMult(this.trans.dir, dst));
                 if (Math.abs(n.dir.x) == 1) {
-                    if (hitPoint.y < pos.y && hitPoint.y > neg.y &&
-                        hitPoint.z < pos.z && hitPoint.z > neg.z) {
+                    if (hitPoint.y <= pos.y && hitPoint.y >= neg.y &&
+                        hitPoint.z <= pos.z && hitPoint.z >= neg.z) {
                         return true;
                     }
                 }
                 else if (Math.abs(n.dir.y) == 1) {
-                    if (hitPoint.x < pos.x && hitPoint.x > neg.x &&
-                        hitPoint.z < pos.z && hitPoint.z > neg.z) {
+                    if (hitPoint.x <= pos.x && hitPoint.x >= neg.x &&
+                        hitPoint.z <= pos.z && hitPoint.z >= neg.z) {
                         return true;
                     }
                 }
                 else if (Math.abs(n.dir.z) == 1) {
-                    if (hitPoint.y < pos.y && hitPoint.y > neg.y &&
-                        hitPoint.x < pos.x && hitPoint.x > neg.x) {
+                    if (hitPoint.y <= pos.y && hitPoint.y >= neg.y &&
+                        hitPoint.x <= pos.x && hitPoint.x >= neg.x) {
                         return true;
                     }
                 }

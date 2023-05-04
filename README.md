@@ -11,7 +11,7 @@ How to Add Camera into the scene:
 addObject("Camera", Position, Rotation, Field of View Angle)
 
 How to Add Spheres into the scene:
-addObject("Sphere", Position, Rotation(does nothing), Scale, Color, Roughness);
+addObject("Sphere", Position, Rotation(does nothing), Scale, Color, Emmision Color, Emmision Strength, Roughness);
 
 How to Add Meshes into the scene:
-addObject(Mesh Type, Position, Rotation, Scale, Color, roughness, if Mesh type is Cylinder then [ring number, column number])
+addObject(Mesh Type, Position, Rotation, Scale, Color, Emmision Color, Emmision strength, roughness, if Mesh type is Cylinder then [ring number, column number])

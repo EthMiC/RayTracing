@@ -12,12 +12,12 @@ function start() {
     //Dont Touch
     anglePerPixelX = (Cam.fov) / renderResolution.x;
     anglePerPixelY = (Cam.fov) / renderResolution.y;
-    startPixelX = (Cam.fov / 2) - (anglePerPixelX);
-    startPixelY = (Cam.fov / 2) - (anglePerPixelY);
+    startPixelX = (Cam.fov / 2) - (anglePerPixelX / 2);
+    startPixelY = (Cam.fov / 2) - (anglePerPixelY / 2);
     for (let x = 0; x < renderResolution.x; x++) {
         clrs.push([]);
         for (let y = 0; y < renderResolution.y; y++) {
-            clrs[x][y] = Color(0, 0, 0, true);
+            clrs[x][y] = Color(0, 0, 0);
         }
     }
 }

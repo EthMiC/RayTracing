@@ -1,7 +1,7 @@
 var renderResolution = { "x": 100, "y": 100 };
 var projectResolution = { "x": 1000, "y": 1000 };
 var aspectRatio = projectResolution.x / projectResolution.y;
-var bounces = 4;
+var bounces = 2;
 
 var canv = document.getElementById('canvas');
 var fpsCounter = document.getElementById('fpsCounter');
@@ -18,7 +18,7 @@ function render() {
     setTimeout(() => {
         frame++;
         render(objects[0]);
-    }, 0)
+    }, 0);
     // let pixels = [];
     for (let x = 0; x < renderResolution.x; x++) {
         // pixels.push([]);
@@ -37,12 +37,18 @@ function render() {
                         r.trans.dir = VectorBounce(r.trans.dir, hitData.hitNormal, obj.roughness, ((frame * renderResolution.x * renderResolution.y * bounces) + (x * renderResolution.y * bounces) + (y * bounces) + (i)));
                         // clr = ColorAdd(clr, ColorScalarMult(dls(r.hitPoint, obj), Math.pow(InverseSquareLaw(dists[x][y]), 1/4)));
                         let emmitedLight = ColorScalarMult(obj.emmClr, obj.emmInteg);
+                        // incLight = dls(hitData.hitPoint, obj);
                         incLight = ColorAdd(incLight, ColorMult(emmitedLight, rayClr));
                         if (obj.clr == null){
                             break;
                         }
                         // rayClr = obj.clr;
                         rayClr = ColorScalarMult(ColorMult(rayClr, ColorAdd(obj.clr, obj.emmClr)), VectorDotProduct(r.trans.dir, hitData.hitNormal));
+                    }
+                    else{
+                        let emmitedLight = ColorScalarMult(obj.emmClr, obj.emmInteg);
+                        incLight = ColorAdd(incLight, ColorMult(emmitedLight, rayClr));
+                        break;
                     }
                 }
                 else {
@@ -97,13 +103,13 @@ function truncTill2(_val) {
 //     for (let i = 0; i < lights.length; i++) {
 //         l = lights[i];
 //         dir = DirTo(_pos, l.trans.pos);
-//         let dlsr = new ray(_pos, dir);
+//         let dlsr = new ray(VectorAdd(_pos, dir));
 //         // console.log(dlsr.trans.pos);
-//         let obj = dlsr.shootRay(l, _obj);
+//         let hitData = dlsr.shootRay();
+//         let obj = hitData.hitObject;
 //         // console.log(dlsr.trans.pos);
 //         if (obj == l) {
-//             let lightPower = VectorDotProduct(dlsr.trans.dir, _obj.normal(_pos));
-//             _clr = ColorAdd(_clr, ColorScalarMult(ColorScalarMult(ColorMult(_obj.clr, l.clr), l.calcPower(_pos)), lightPower));
+//             _clr = ColorAdd(_clr, ColorScalarMult(ColorMult(_obj.clr, l.emmClr), l.calcPower(_pos)));
 //         }
 //         // _clr = ColorScalarMult(Color(dlsr.trans.rot.x, dlsr.trans.rot.y, dlsr.trans.rot.z, true), 25);
 //     }
@@ -175,9 +181,6 @@ class ray {
             if (o.type != "Cam") {
                 if (o.type != "Mesh") {
                     let offsetPos = VectorSub(this.trans.pos, o.trans.pos);
-                    if (o == _obj) {
-                        offsetPos = VectorSub(VectorAdd(this.trans.pos, VectorScalarDiv(this.trans.dir, 10)), o.trans.pos);
-                    }
                     let b = VectorDotProduct(offsetPos, this.trans.dir);
                     let c = VectorDotProduct(offsetPos, offsetPos) - Math.pow(o.trans.scale.x, 2);
                     let discriminant = b * b - c;
@@ -185,14 +188,14 @@ class ray {
                         let dst1 = -b + Math.sqrt(discriminant);
                         let dst2 = -b - Math.sqrt(discriminant);
                         let dst;
-                        if (dst1 >= 0) {
-                            if (dst2 >= 0) {
+                        if (dst1 > 0 || dst2 > 0) {
+                            if (discriminant != 0) {
                                 dst = Math.min(dst1, dst2);
                             }
                             else {
                                 dst = dst1;
                             }
-                            if (dst < minDist) {
+                            if (dst <= minDist) {
                                 hit.hit = true;
                                 minDist = dst;
                                 minDistInt = j;
@@ -251,7 +254,7 @@ class ray {
                             // console.log(normal);
                             // console.log(Math.sign(det), Math.sign(dst));
 
-                            if (det >= 1E-6 && dst >= 0 && u >= 0 && v >= 0 && w >= 0) {
+                            if (det >= 1E-6 && dst > 0 && u >= 0 && v >= 0 && w >= 0) {
                                 if (dst < minDist) {
                                     hit.hit = true;
                                     minDist = dst;
